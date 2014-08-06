@@ -27,7 +27,7 @@ namespace ExampleBackgroundTask
             var download = downloader.CreateDownload(new Uri("http://www.wswdsupport.com/testdownloadfiles/20MB.zip"), destinationFile);
             await download.StartAsync();
 
-            SetBadgeCount();
+            await SetBadgeCountAsync();
 
             _deferral.Complete();
         }
@@ -52,19 +52,23 @@ namespace ExampleBackgroundTask
             BadgeUpdateManager.CreateBadgeUpdaterForApplication().Update(badge);
         }
 
-        private void SetBadgeCount()
+        private async Task SetBadgeCountAsync()
         {
-            string badgeXmlString = string.Format("<badge value='{0}'/>", "1");
+            var files = await ApplicationData.Current.LocalFolder.GetFilesAsync();
 
-            Windows.Data.Xml.Dom.XmlDocument badgeDOM = new Windows.Data.Xml.Dom.XmlDocument();
-            badgeDOM.LoadXml(badgeXmlString);
-            BadgeNotification badge = new BadgeNotification(badgeDOM);
-            BadgeUpdateManager.CreateBadgeUpdaterForApplication().Update(badge);
-        }
+            if (files != null && files.Count > 0)
+            {
+                string badgeXmlString = string.Format("<badge value='{0}'/>", files.Count.ToString());
 
-        public void ClearBadge()
-        {
-            BadgeUpdateManager.CreateBadgeUpdaterForApplication().Clear();
+                Windows.Data.Xml.Dom.XmlDocument badgeDOM = new Windows.Data.Xml.Dom.XmlDocument();
+                badgeDOM.LoadXml(badgeXmlString);
+                BadgeNotification badge = new BadgeNotification(badgeDOM);
+                BadgeUpdateManager.CreateBadgeUpdaterForApplication().Update(badge);
+            }
+            else 
+            {
+                BadgeUpdateManager.CreateBadgeUpdaterForApplication().Clear();
+            }
         }
 
         #endregion

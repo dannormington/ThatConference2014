@@ -11,6 +11,7 @@ using Windows.ApplicationModel.Core;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
 using Windows.UI.Core;
+using Windows.UI.Notifications;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Controls.Primitives;
@@ -84,9 +85,6 @@ namespace ExampleApplication
             }
             // Ensure the current window is active
             Window.Current.Activate();
-
-            RegisterMaintenanceBackgroundTask();
-            RegisterTimerBackgroundTaskAsync();
         }
 
         /// <summary>
@@ -111,72 +109,6 @@ namespace ExampleApplication
             var deferral = e.SuspendingOperation.GetDeferral();
             //TODO: Save application state and stop any background activity
             deferral.Complete();
-        }
-
-
-
-        private const string DownloadTimerTaskName = "DownloadTimerTask";
-
-        private async Task RegisterTimerBackgroundTaskAsync() 
-        {
-            IBackgroundTaskRegistration downloadTimerTask = BackgroundTaskRegistration.AllTasks.SingleOrDefault(x => x.Value.Name == DownloadTimerTaskName).Value;
-
-            if (downloadTimerTask == null)
-            {
-                await DispatcherHelper.RunOnUIThreadAsync(async () =>
-                {
-                    //request access
-                    var currentStatus = await BackgroundExecutionManager.RequestAccessAsync();
-
-                    if (currentStatus == BackgroundAccessStatus.AllowedMayUseActiveRealTimeConnectivity ||
-                    currentStatus == BackgroundAccessStatus.AllowedWithAlwaysOnRealTimeConnectivity)
-                    {
-
-                        var builder = new BackgroundTaskBuilder();
-
-                        builder.Name = DownloadTimerTaskName;
-                        builder.TaskEntryPoint = "ExampleBackgroundTask.DownloadFilesTask";
-                        builder.SetTrigger(new TimeTrigger(15, false));
-                        builder.AddCondition(new SystemCondition(SystemConditionType.InternetAvailable));
-                        builder.CancelOnConditionLoss = true;
-
-                        downloadTimerTask = builder.Register();
-
-                        downloadTimerTask.Completed += BackgroundTask_Completed;
-                    }
-                });
-            }
-            else 
-            {
-                downloadTimerTask.Completed += BackgroundTask_Completed;
-            }  
-        }
-
-
-        private const string DownloadMaintenanceTaskName = "DownloadMaintenanceTask";
-        private void RegisterMaintenanceBackgroundTask() 
-        {
-            IBackgroundTaskRegistration downloadMaintenanceTask = BackgroundTaskRegistration.AllTasks.SingleOrDefault(x => x.Value.Name == DownloadMaintenanceTaskName).Value;
-
-            if (downloadMaintenanceTask == null)
-            {
-                var builder = new BackgroundTaskBuilder();
-
-                builder.Name = DownloadMaintenanceTaskName;
-                builder.TaskEntryPoint = "ExampleBackgroundTask.DownloadFilesTask";
-                builder.SetTrigger(new MaintenanceTrigger(15, false));
-                builder.AddCondition(new SystemCondition(SystemConditionType.InternetAvailable));
-                builder.CancelOnConditionLoss = true;
-
-                downloadMaintenanceTask = builder.Register(); 
-            }
-
-            downloadMaintenanceTask.Completed += BackgroundTask_Completed;
-        }
-
-        void BackgroundTask_Completed(BackgroundTaskRegistration sender, BackgroundTaskCompletedEventArgs args)
-        {
-            //notify user
         }
     }
 }

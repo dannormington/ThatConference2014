@@ -3,11 +3,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Threading.Tasks;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
 using Windows.ApplicationModel.Background;
+using Windows.ApplicationModel.Core;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
+using Windows.UI.Core;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Controls.Primitives;
@@ -82,7 +85,8 @@ namespace ExampleApplication
             // Ensure the current window is active
             Window.Current.Activate();
 
-            RegisterBackgroundTask();
+            RegisterMaintenanceBackgroundTask();
+            RegisterTimerBackgroundTaskAsync();
         }
 
         /// <summary>
@@ -109,25 +113,65 @@ namespace ExampleApplication
             deferral.Complete();
         }
 
-        private const string DownloadTaskName = "DownloadTask";
-        private void RegisterBackgroundTask() 
-        {
-            IBackgroundTaskRegistration downloadTimerTask = BackgroundTaskRegistration.AllTasks.SingleOrDefault(x => x.Value.Name == DownloadTaskName).Value;
 
-            if (downloadTimerTask == null)
+
+        private const string DownloadTimerTaskName = "DownloadTimerTask";
+
+        private async Task RegisterTimerBackgroundTaskAsync() 
+        {
+            IBackgroundTaskRegistration downloadTimereTask = BackgroundTaskRegistration.AllTasks.SingleOrDefault(x => x.Value.Name == DownloadTimerTaskName).Value;
+
+            if (downloadTimereTask == null)
+            {
+                await DispatcherHelper.RunOnUIThreadAsync(async () =>
+                {
+                    //request access
+                    var currentStatus = await BackgroundExecutionManager.RequestAccessAsync();
+
+                    if (currentStatus == BackgroundAccessStatus.AllowedMayUseActiveRealTimeConnectivity ||
+                    currentStatus == BackgroundAccessStatus.AllowedWithAlwaysOnRealTimeConnectivity)
+                    {
+
+                        var builder = new BackgroundTaskBuilder();
+
+                        builder.Name = DownloadTimerTaskName;
+                        builder.TaskEntryPoint = "ExampleBackgroundTask.DownloadFilesTask";
+                        builder.SetTrigger(new TimeTrigger(15, false));
+                        builder.AddCondition(new SystemCondition(SystemConditionType.InternetAvailable));
+                        builder.CancelOnConditionLoss = true;
+
+                        downloadTimereTask = builder.Register();
+
+                        downloadTimereTask.Completed += BackgroundTask_Completed;
+                    }
+                });
+            }
+            else 
+            {
+                downloadTimereTask.Completed += BackgroundTask_Completed;
+            }  
+        }
+
+
+        private const string DownloadMaintenanceTaskName = "DownloadMaintenanceTask";
+        private void RegisterMaintenanceBackgroundTask() 
+        {
+            IBackgroundTaskRegistration downloadMaintenanceTask = BackgroundTaskRegistration.AllTasks.SingleOrDefault(x => x.Value.Name == DownloadMaintenanceTaskName).Value;
+
+            if (downloadMaintenanceTask == null)
             {
                 var builder = new BackgroundTaskBuilder();
 
-                builder.Name = DownloadTaskName;
+                builder.Name = DownloadMaintenanceTaskName;
                 builder.TaskEntryPoint = "ExampleBackgroundTask.DownloadFilesTask";
                 builder.SetTrigger(new MaintenanceTrigger(15, false));
                 builder.AddCondition(new SystemCondition(SystemConditionType.InternetAvailable));
                 builder.CancelOnConditionLoss = true;
 
-                downloadTimerTask = builder.Register(); 
+                downloadMaintenanceTask = builder.Register(); 
             }
 
-            downloadTimerTask.Completed += BackgroundTask_Completed;
+            downloadMaintenanceTask.Completed += BackgroundTask_Completed;
         }
 
         void BackgroundTask_Completed(BackgroundTaskRegistration sender, BackgroundTaskCompletedEventArgs args)

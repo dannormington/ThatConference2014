@@ -18,13 +18,13 @@ namespace ExampleBackgroundTask
             taskInstance.Canceled += taskInstance_Canceled;
             _deferral = taskInstance.GetDeferral();
 
-            var destinationFile = await ApplicationData.Current.LocalFolder.CreateFileAsync("20MB.txt", CreationCollisionOption.ReplaceExisting);
+            var destinationFile = await ApplicationData.Current.LocalFolder.CreateFileAsync("20MB.zip", CreationCollisionOption.ReplaceExisting);
 
             //var authInfo = Convert.ToBase64String(Encoding.UTF8.GetBytes("username:password"));
             //downloader.SetRequestHeader("Authorization", string.Format("Basic {0}", authInfo));
 
             var downloader = new BackgroundDownloader();
-            var download = downloader.CreateDownload(new Uri("http://download.thinkbroadband.com/20MB.zip"), destinationFile);
+            var download = downloader.CreateDownload(new Uri("http://www.wswdsupport.com/testdownloadfiles/20MB.zip"), destinationFile);
             await download.StartAsync();
 
             _deferral.Complete();

@@ -16,12 +16,13 @@
   <Applications>
     <Application Id="App" Executable="$targetnametoken$.exe" EntryPoint="ExampleApplication.App">
       <m2:VisualElements DisplayName="ExampleApplication" Square150x150Logo="Assets\Logo.png" Square30x30Logo="Assets\SmallLogo.png" Description="ExampleApplication" ForegroundText="light" BackgroundColor="#464646">
+        <m2:LockScreen Notification="badge" BadgeLogo="Assets\BadgeLogo.png" />
         <m2:SplashScreen Image="Assets\SplashScreen.png" />
       </m2:VisualElements>
       <Extensions>
         <Extension Category="windows.backgroundTasks" EntryPoint="ExampleBackgroundTask.DownloadFilesTask">
           <BackgroundTasks>
-            <Task Type="systemEvent" />
+            <Task Type="timer" />
           </BackgroundTasks>
         </Extension>
       </Extensions>

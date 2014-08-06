@@ -119,9 +119,9 @@ namespace ExampleApplication
 
         private async Task RegisterTimerBackgroundTaskAsync() 
         {
-            IBackgroundTaskRegistration downloadTimereTask = BackgroundTaskRegistration.AllTasks.SingleOrDefault(x => x.Value.Name == DownloadTimerTaskName).Value;
+            IBackgroundTaskRegistration downloadTimerTask = BackgroundTaskRegistration.AllTasks.SingleOrDefault(x => x.Value.Name == DownloadTimerTaskName).Value;
 
-            if (downloadTimereTask == null)
+            if (downloadTimerTask == null)
             {
                 await DispatcherHelper.RunOnUIThreadAsync(async () =>
                 {
@@ -140,15 +140,15 @@ namespace ExampleApplication
                         builder.AddCondition(new SystemCondition(SystemConditionType.InternetAvailable));
                         builder.CancelOnConditionLoss = true;
 
-                        downloadTimereTask = builder.Register();
+                        downloadTimerTask = builder.Register();
 
-                        downloadTimereTask.Completed += BackgroundTask_Completed;
+                        downloadTimerTask.Completed += BackgroundTask_Completed;
                     }
                 });
             }
             else 
             {
-                downloadTimereTask.Completed += BackgroundTask_Completed;
+                downloadTimerTask.Completed += BackgroundTask_Completed;
             }  
         }
 

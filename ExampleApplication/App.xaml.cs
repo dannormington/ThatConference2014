@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices.WindowsRuntime;
+using System.Threading;
 using System.Threading.Tasks;
 using Windows.ApplicationModel;
 using Windows.ApplicationModel.Activation;
@@ -10,6 +11,7 @@ using Windows.ApplicationModel.Background;
 using Windows.ApplicationModel.Core;
 using Windows.Foundation;
 using Windows.Foundation.Collections;
+using Windows.Storage;
 using Windows.UI.Core;
 using Windows.UI.Notifications;
 using Windows.UI.Xaml;
@@ -37,6 +39,7 @@ namespace ExampleApplication
         {
             this.InitializeComponent();
             this.Suspending += OnSuspending;
+            this.Resuming += OnResuming;
         }
 
         /// <summary>
@@ -53,6 +56,8 @@ namespace ExampleApplication
                 this.DebugSettings.EnableFrameRateCounter = true;
             }
 #endif
+
+            SetApplicationState(true);
 
             Frame rootFrame = Window.Current.Content as Frame;
 
@@ -107,8 +112,32 @@ namespace ExampleApplication
         private void OnSuspending(object sender, SuspendingEventArgs e)
         {
             var deferral = e.SuspendingOperation.GetDeferral();
-            //TODO: Save application state and stop any background activity
+
+            SetApplicationState(false);
+
             deferral.Complete();
+        }
+
+        private void OnResuming(object sender, object e) 
+        {
+            SetApplicationState(true);
+        }
+
+
+        public void SetApplicationState(bool isActive) 
+        {
+            using (Mutex mutex = new Mutex(true, "AppIsActiveMutex"))
+            {
+                mutex.WaitOne();
+                try
+                {
+                    ApplicationData.Current.LocalSettings.Values["AppIsActive"] = isActive;
+                }
+                finally
+                {
+                    mutex.ReleaseMutex();
+                }
+            }
         }
     }
 }

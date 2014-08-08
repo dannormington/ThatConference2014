@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Windows.ApplicationModel.Background;
+using Windows.Data.Xml.Dom;
 using Windows.Networking.BackgroundTransfer;
 using Windows.Storage;
 using Windows.UI.Notifications;
@@ -29,6 +31,15 @@ namespace ExampleBackgroundTask
 
             await SetBadgeCountAsync();
 
+            var isAppActive = ApplicationData.Current.LocalSettings.Values["AppIsActive"] as bool?;
+
+            //make sure the app isn't active before sending the toast
+            if (!GetIsApplicationActive())
+            {
+                //send toast
+                SendToast();
+            }
+
             _deferral.Complete();
         }
 
@@ -41,7 +52,49 @@ namespace ExampleBackgroundTask
             _deferral.Complete();
         }
 
-        #region Badge Updates
+        private bool GetIsApplicationActive() 
+        {
+            using (Mutex mutex = new Mutex(true, "AppIsActiveMutex"))
+            {
+                mutex.WaitOne();
+                try
+                {
+                    var isActive = ApplicationData.Current.LocalSettings.Values["AppIsActive"] as bool?;
+
+                    return isActive.HasValue && isActive.Value;
+                }
+                finally
+                {
+                    mutex.ReleaseMutex();
+                }
+            }
+        }
+
+        private void SendToast()
+        {
+            ToastTemplateType toastTemplate = ToastTemplateType.ToastImageAndText01;
+            XmlDocument toastXml = ToastNotificationManager.GetTemplateContent(toastTemplate);
+
+            XmlNodeList toastTextElements = toastXml.GetElementsByTagName("text");
+            toastTextElements[0].AppendChild(toastXml.CreateTextNode("Welcome to That Conference!"));
+
+            XmlNodeList toastImageAttributes = toastXml.GetElementsByTagName("image");
+
+            ((XmlElement)toastImageAttributes[0]).SetAttribute("src", "ms-appx:///assets/Logo.png");
+            ((XmlElement)toastImageAttributes[0]).SetAttribute("alt", "Logo");
+
+            IXmlNode toastNode = toastXml.SelectSingleNode("/toast");
+            ((XmlElement)toastNode).SetAttribute("duration", "long");
+
+            XmlElement audio = toastXml.CreateElement("audio");
+            audio.SetAttribute("src", "ms-winsoundevent:Notification.IM");
+            toastNode.AppendChild(audio);
+
+            //((XmlElement)toastNode).SetAttribute("launch", "{\"type\":\"toast\",\"param1\":\"12345\",\"param2\":\"67890\"}");
+
+            ToastNotification toast = new ToastNotification(toastXml);
+            ToastNotificationManager.CreateToastNotifier().Show(toast);
+        }
 
         private void SetBadgeToSync()
         {
@@ -70,7 +123,5 @@ namespace ExampleBackgroundTask
                 BadgeUpdateManager.CreateBadgeUpdaterForApplication().Clear();
             }
         }
-
-        #endregion
     }
 }

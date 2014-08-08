@@ -32,16 +32,17 @@ namespace ExampleApplication
 
         void MainPage_Loaded(object sender, RoutedEventArgs e)
         {
-            RegisterMaintenanceBackgroundTask();
+            //RegisterMaintenanceBackgroundTask();
             RegisterTimerBackgroundTaskAsync();
         }
 
         #region Background Task Registration
 
-        private const string BackgroundTaskEndpoint = "ExampleBackgroundTask.DownloadFilesTask";
-
+        private const string DownloadFilesTaskEndpoint = "ExampleBackgroundTask.DownloadFilesTask";
+        
         private const string DownloadTimerTaskName = "DownloadTimerTask";
-
+        private const string DownloadMaintenanceTaskName = "DownloadMaintenanceTask";
+        
         private async Task RegisterTimerBackgroundTaskAsync()
         {
             IBackgroundTaskRegistration downloadTimerTask = BackgroundTaskRegistration.AllTasks.SingleOrDefault(x => x.Value.Name == DownloadTimerTaskName).Value;
@@ -58,7 +59,7 @@ namespace ExampleApplication
                     var builder = new BackgroundTaskBuilder();
 
                     builder.Name = DownloadTimerTaskName;
-                    builder.TaskEntryPoint = BackgroundTaskEndpoint;
+                    builder.TaskEntryPoint = DownloadFilesTaskEndpoint;
                     builder.SetTrigger(new TimeTrigger(15, false));
                     builder.AddCondition(new SystemCondition(SystemConditionType.InternetAvailable));
                     builder.CancelOnConditionLoss = true;
@@ -75,7 +76,7 @@ namespace ExampleApplication
         }
 
 
-        private const string DownloadMaintenanceTaskName = "DownloadMaintenanceTask";
+        
 
         private void RegisterMaintenanceBackgroundTask()
         {
@@ -86,7 +87,7 @@ namespace ExampleApplication
                 var builder = new BackgroundTaskBuilder();
 
                 builder.Name = DownloadMaintenanceTaskName;
-                builder.TaskEntryPoint = BackgroundTaskEndpoint;
+                builder.TaskEntryPoint = DownloadFilesTaskEndpoint;
                 builder.SetTrigger(new MaintenanceTrigger(15, false));
                 builder.AddCondition(new SystemCondition(SystemConditionType.InternetAvailable));
                 builder.CancelOnConditionLoss = true;

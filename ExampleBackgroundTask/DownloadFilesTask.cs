@@ -15,41 +15,71 @@ namespace ExampleBackgroundTask
     public sealed class DownloadFilesTask : IBackgroundTask 
     {
         BackgroundTaskDeferral _deferral;
+        CancellationTokenSource _cancellationTokenSource;
 
         async void IBackgroundTask.Run(IBackgroundTaskInstance taskInstance)
         {
-            taskInstance.Canceled += taskInstance_Canceled;
             _deferral = taskInstance.GetDeferral();
 
-            SetBadgeToSync();
+            try
+            {    
+                taskInstance.Canceled += taskInstance_Canceled;
 
-            var destinationFile = await ApplicationData.Current.LocalFolder.CreateFileAsync("20MB.zip", CreationCollisionOption.ReplaceExisting);
+                _cancellationTokenSource = new CancellationTokenSource();
+
+                SetBadgeToSync();
+
+                var tasks = new List<Task>();
+
+                tasks.Add(StartDownloadAsync("10MB.zip", _cancellationTokenSource.Token));
+                //tasks.Add(StartDownloadAsync("20MB.zip", _cancellationTokenSource.Token));
+                //tasks.Add(StartDownloadAsync("50MB.zip", _cancellationTokenSource.Token));
+                //tasks.Add(StartDownloadAsync("100MB.zip", _cancellationTokenSource.Token));
+                //tasks.Add(StartDownloadAsync("200MB.zip", _cancellationTokenSource.Token));
+
+                //signal that the task has started
+                taskInstance.Progress = 1;
+
+                await Task.WhenAll(tasks);
+
+                await SetBadgeCountAsync();
+
+                //make sure the app isn't active before sending the toast
+                //windows app store guidelines specify that toasts should be used
+                //only when the app is not in the foreground
+                if (!GetIsApplicationActive())
+                {
+                    SendToast();
+                }
+            }
+            catch (Exception)
+            {
+                if(_cancellationTokenSource != null)
+                    _cancellationTokenSource.Cancel();
+            }
+            finally 
+            {
+                if(_cancellationTokenSource != null)
+                    _cancellationTokenSource.Dispose();
+
+                _deferral.Complete();
+            }
+        }
+
+        private async Task StartDownloadAsync(string fileName, CancellationToken cancellationToken) 
+        {
+            var destinationFile = await ApplicationData.Current.LocalFolder.CreateFileAsync(fileName, CreationCollisionOption.ReplaceExisting);
 
             var downloader = new BackgroundDownloader();
-            var download = downloader.CreateDownload(new Uri("http://www.wswdsupport.com/testdownloadfiles/20MB.zip"), destinationFile);
-            await download.StartAsync();
+            var download = downloader.CreateDownload(new Uri(string.Format("http://www.wswdsupport.com/testdownloadfiles/{0}", fileName)), destinationFile);
 
-            await SetBadgeCountAsync();
-
-            var isAppActive = ApplicationData.Current.LocalSettings.Values["AppIsActive"] as bool?;
-
-            //make sure the app isn't active before sending the toast
-            if (!GetIsApplicationActive())
-            {
-                //send toast
-                SendToast();
-            }
-
-            _deferral.Complete();
+            await download.StartAsync().AsTask(cancellationToken);
         }
 
         void taskInstance_Canceled(IBackgroundTaskInstance sender, BackgroundTaskCancellationReason reason)
         {
             //handle any clean-up that should occur prior to cancellation
-
-
-            //mark the task as completed
-            _deferral.Complete();
+            _cancellationTokenSource.Cancel();
         }
 
         private bool GetIsApplicationActive() 
@@ -89,8 +119,6 @@ namespace ExampleBackgroundTask
             XmlElement audio = toastXml.CreateElement("audio");
             audio.SetAttribute("src", "ms-winsoundevent:Notification.IM");
             toastNode.AppendChild(audio);
-
-            //((XmlElement)toastNode).SetAttribute("launch", "{\"type\":\"toast\",\"param1\":\"12345\",\"param2\":\"67890\"}");
 
             ToastNotification toast = new ToastNotification(toastXml);
             ToastNotificationManager.CreateToastNotifier().Show(toast);

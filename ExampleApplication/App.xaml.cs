@@ -123,7 +123,6 @@ namespace ExampleApplication
             SetApplicationState(true);
         }
 
-
         public void SetApplicationState(bool isActive) 
         {
             using (Mutex mutex = new Mutex(true, "AppIsActiveMutex"))

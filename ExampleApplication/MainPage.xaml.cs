@@ -32,79 +32,13 @@ namespace ExampleApplication
 
         void MainPage_Loaded(object sender, RoutedEventArgs e)
         {
-            //RegisterMaintenanceBackgroundTask();
-            RegisterTimerBackgroundTaskAsync();
+            var taskRegistrationService = new BackgroundTaskRegistrationService();
+            taskRegistrationService.RegisterMaintenanceBackgroundTask();
         }
 
-        #region Background Task Registration
-
-        private const string DownloadFilesTaskEndpoint = "ExampleBackgroundTask.DownloadFilesTask";
-        
-        private const string DownloadTimerTaskName = "DownloadTimerTask";
-        private const string DownloadMaintenanceTaskName = "DownloadMaintenanceTask";
-        
-        private async Task RegisterTimerBackgroundTaskAsync()
+        private void viewDownloads_Click(object sender, RoutedEventArgs e)
         {
-            IBackgroundTaskRegistration downloadTimerTask = BackgroundTaskRegistration.AllTasks.SingleOrDefault(x => x.Value.Name == DownloadTimerTaskName).Value;
-
-            if (downloadTimerTask == null)
-            {
-                //request access
-                var currentStatus = await BackgroundExecutionManager.RequestAccessAsync();
-
-                if (currentStatus == BackgroundAccessStatus.AllowedMayUseActiveRealTimeConnectivity ||
-                currentStatus == BackgroundAccessStatus.AllowedWithAlwaysOnRealTimeConnectivity)
-                {
-
-                    var builder = new BackgroundTaskBuilder();
-
-                    builder.Name = DownloadTimerTaskName;
-                    builder.TaskEntryPoint = DownloadFilesTaskEndpoint;
-                    builder.SetTrigger(new TimeTrigger(15, false));
-                    builder.AddCondition(new SystemCondition(SystemConditionType.InternetAvailable));
-                    builder.CancelOnConditionLoss = true;
-
-                    downloadTimerTask = builder.Register();
-
-                    downloadTimerTask.Completed += BackgroundTask_Completed;
-                }
-            }
-            else
-            {
-                downloadTimerTask.Completed += BackgroundTask_Completed;
-            }            
+            this.Frame.Navigate(typeof(ViewDownloadsPage));
         }
-
-
-        
-
-        private void RegisterMaintenanceBackgroundTask()
-        {
-            IBackgroundTaskRegistration downloadMaintenanceTask = BackgroundTaskRegistration.AllTasks.SingleOrDefault(x => x.Value.Name == DownloadMaintenanceTaskName).Value;
-
-            if (downloadMaintenanceTask == null)
-            {
-                var builder = new BackgroundTaskBuilder();
-
-                builder.Name = DownloadMaintenanceTaskName;
-                builder.TaskEntryPoint = DownloadFilesTaskEndpoint;
-                builder.SetTrigger(new MaintenanceTrigger(15, false));
-                builder.AddCondition(new SystemCondition(SystemConditionType.InternetAvailable));
-                builder.CancelOnConditionLoss = true;
-
-                downloadMaintenanceTask = builder.Register();
-            }
-
-            downloadMaintenanceTask.Completed += BackgroundTask_Completed;
-        }
-
-        void BackgroundTask_Completed(BackgroundTaskRegistration sender, BackgroundTaskCompletedEventArgs args)
-        {
-            //notify user
-        }
-
-        #endregion
     }
-
-
 }

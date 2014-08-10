@@ -84,7 +84,7 @@ namespace ExampleBackgroundTask
 
         private bool GetIsApplicationActive() 
         {
-            using (Mutex mutex = new Mutex(true, "AppIsActiveMutex"))
+            using (Mutex mutex = new Mutex(false, "AppIsActiveMutex"))
             {
                 mutex.WaitOne();
                 try

@@ -33,7 +33,7 @@ namespace ExampleApplication
         void MainPage_Loaded(object sender, RoutedEventArgs e)
         {
             var taskRegistrationService = new BackgroundTaskRegistrationService();
-            taskRegistrationService.RegisterMaintenanceBackgroundTask();
+            taskRegistrationService.RegisterTimerBackgroundTaskAsync();
         }
 
         private void viewDownloads_Click(object sender, RoutedEventArgs e)
